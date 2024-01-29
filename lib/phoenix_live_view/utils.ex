@@ -130,11 +130,16 @@ defmodule Phoenix.LiveView.Utils do
   """
   def to_rendered(socket, view) do
     assigns = render_assigns(socket)
+    metadata = %{socket: socket, view: view, assigns: assigns, params: []}
 
     inner_content =
-      assigns
-      |> view.render()
-      |> check_rendered!(view)
+      :telemetry.span(
+        [:phoenix, :live_view, :render],
+        metadata,
+        fn ->
+          {assigns |> view.render() |> check_rendered!(view), metadata}
+        end
+      )
 
     case layout(socket, view) do
       {layout_mod, layout_template} ->
