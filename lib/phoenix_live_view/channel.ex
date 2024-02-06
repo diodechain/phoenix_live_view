@@ -396,10 +396,15 @@ defmodule Phoenix.LiveView.Channel do
 
   defp view_handle_info(msg, %{view: view} = socket) do
     exported? = function_exported?(view, :handle_info, 2)
+    metadata = %{socket: socket, params: msg}
 
     case Lifecycle.handle_info(msg, socket) do
       {:cont, %Socket{} = socket} when exported? ->
-        view.handle_info(msg, socket)
+        :telemetry.span(
+          [:phoenix, :live_view, :handle_info],
+          metadata,
+          fn -> {view.handle_info(msg, socket), metadata} end
+        )
 
       {_, %Socket{} = socket} ->
         {:noreply, socket}
